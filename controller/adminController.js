@@ -3,8 +3,11 @@ import User from "../model/userModel.js";
 import Partner from "../model/partnerModel.js";
 import Service from "../model/serviceModel.js";
 import Vehicle from "../model/vehicleModel.js";
+import Coupon from "../model/couponModal.js";
+import Booking from "../model/bookingModel.js";
 import cloudinary from "cloudinary";
-import mongoose from "mongoose";
+import { ObjectId } from "mongoose";
+
 
 const adminLogin = async (req, res) => {
   const { email, password } = req.body;
@@ -98,6 +101,7 @@ const vehicle = async (req, res) => {
     const Image = await cloudinary.v2.uploader.upload(req.body.image);
     const minWeight = req.body.minWeight;
     const maxWeight = req.body.maxWeight;
+    const pricePerKm = req.body.pricePerKm
 
     const vehicleExist = await Vehicle.findOne({ vehicle: vehicle });
 
@@ -110,6 +114,7 @@ const vehicle = async (req, res) => {
       Image: Image.url,
       minWeight: minWeight,
       maxWeight: maxWeight,
+      pricePerKm:pricePerKm
     });
 
     const newVehicle = await vehicleData.save();
@@ -137,6 +142,133 @@ const vehicleList = async (req, res) => {
   }
 };
 
+const verifyPartner = async(req,res)=>{
+  try {
+    const partnerId = req.body.partnerId
+    const partner = await Partner.findById(partnerId);
+    if(partner){
+      const partnerData = await Partner.findByIdAndUpdate(
+        { _id: partnerId },
+        { $set: { is_verified: true } },
+        { new: true }
+      )
+      res.json(partnerData)
+    }
+  } catch (error) {
+    console.log(error.message);
+  }
+}
+
+const addCoupon = async(req,res)=>{
+  console.log('inside the addcoupon');
+  try {
+    console.log(req.body,"this is the reqbody");
+    const couponCode = req.body.couponCode
+    const discount = req.body.discount
+    const maxDiscount = req.body.maxDiscount
+    const expiryDate = req.body.expiryDate
+
+    const couponExist = await Coupon.findOne({ couponCode: couponCode });
+
+    if (couponExist) {
+      return res.status(400).json({ error: "Coupon already exists" });
+    }
+
+    const couponData = new Coupon({
+      couponCode: couponCode,
+      discount: discount,
+      maxDiscount: maxDiscount,
+      expiryDate: expiryDate,
+    });
+
+    const newCoupon = await couponData.save();
+
+    if (newCoupon) {
+      return res.status(201).json(newCoupon);
+    } else {
+      return res.status(201).json({ message: "new Coupon not found" });
+    }
+  } catch (error) {
+    console.log(error.message);
+  }
+}
+
+const couponList = async(req,res)=>{
+  console.log("inside the couponList");
+  try {
+    const couponData = await Coupon.find();
+    if (couponData) {
+      res.json(couponData);
+    } else {
+      res.status(404).json({ message: "No coupon data found" });
+    }
+    
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+const detailsBooking = async(req,res)=>{
+  try {
+    // const details = await Booking.find()
+    const details = await Booking.aggregate([
+      {
+        $lookup: {
+          from: "users",
+          localField: "userId",
+          foreignField: "_id",
+          as: "userData"
+        }
+      },
+      {
+        $lookup: {
+          from: "partners",
+          localField: "partnerId",
+          foreignField: "_id",
+          as: "partnerData"
+        }
+      },
+      {
+        $unwind: "$userData"   // Unwind the 'userData' array
+      },
+      {
+        $unwind: "$partnerData"  // Unwind the 'partnerData' array
+      }
+    ]);
+    
+    
+    
+    if(details){
+ 
+      res.json(details)
+    }
+    else{
+      console.log("no data");
+      res.status(404).json({ message: "No booking data found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+const bookingData = async(req,res)=>{
+  try {
+    const bookingId = req.params.id
+      const bookingData = await Booking.findOne({_id:bookingId})
+    
+    if (bookingData) {
+      console.log(bookingData, "this is the details");
+      res.json(bookingData); 
+    } else {
+      console.log("no data");
+      res.status(404).json({ message: "No booking data found" });
+    }
+
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
 export default {
   adminLogin,
   addCity,
@@ -145,4 +277,9 @@ export default {
   partnersList,
   vehicle,
   vehicleList,
+  verifyPartner,
+  addCoupon,
+  couponList,
+  detailsBooking,
+  bookingData
 };

@@ -24,7 +24,8 @@
     "mongodb": "^6.1.0",
     "mongoose": "^7.5.2",
     "node-cache": "^5.1.2",
-    "nodemailer": "^6.9.5"
+    "nodemailer": "^6.9.5",
+    "socket.io": "^4.7.2"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

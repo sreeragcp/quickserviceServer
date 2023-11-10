@@ -1,22 +1,30 @@
 import User from "../model/userModel.js";
 import Service from "../model/serviceModel.js";
 import Vehicle from "../model/vehicleModel.js";
-import mongoose from "mongoose";
+import Coupon from "../model/couponModal.js";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import NodeCache from "node-cache";
 import generateTocken from "../utils/generateUserToken.js";
+import Partner from "../model/partnerModel.js";
+import Booking from "../model/bookingModel.js";
+import BookingHistory from "../model/bookingHistoryModel.js";
+import mongoose from "mongoose";
+
+let io;
+
+export const hello = (i) => {
+  io = i;
+};
 
 const myCache = new NodeCache();
-
-// true
 
 function generateOtp() {
   let otp = "";
   for (let i = 0; i < 4; i++) {
     otp += Math.floor(Math.random() * 10);
   }
-  const success = myCache.set("myOtp", otp, 90000);
+  myCache.set("myOtp", otp, 60000);
   return otp;
 }
 
@@ -62,9 +70,11 @@ const sendOtpMail = async (email, otp) => {
 const userRegister = async (req, res) => {
   try {
     const email = req.body.email;
+    console.log(req.body, "this is the reqbody");
     const otp = generateOtp();
-
+    console.log(otp, "this is the otp");
     const userExist = await User.findOne({ email: req.body.email });
+    console.log(userExist, "this is the userExist");
 
     if (!userExist) {
       sendOtpMail(email, otp);
@@ -78,8 +88,10 @@ const userRegister = async (req, res) => {
 };
 
 const verifyOtp = async (req, res) => {
+  console.log("inside verify otp");
   try {
     const value = myCache.get("myOtp");
+    console.log(value, "thisi is myotp");
     const otp = req.body.otp;
     const password = req.body.password;
 
@@ -115,13 +127,17 @@ const verifyOtp = async (req, res) => {
 };
 
 const userLogin = async (req, res) => {
-  const { email } = req.body;
-
+  const { email, password } = req.body;
   try {
     const user = await User.findOne({ email });
     if (user) {
-      const tocken = generateTocken(res, user._id);
-      res.status(201).json({ tocken: tocken,userData:user});
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (passwordMatch) {
+        const tocken = generateTocken(res, user._id);
+        res.status(201).json({ tocken: tocken, userData: user });
+      } else {
+        res.status(401).json({ message: "Invalid Email or Password" });
+      }
     } else {
       res.status(401).json({ message: "Invalid Email or Password" });
     }
@@ -131,7 +147,6 @@ const userLogin = async (req, res) => {
 };
 
 const listCity = async (req, res) => {
-
   try {
     const cityData = await Service.find();
     if (cityData) {
@@ -146,10 +161,9 @@ const listCity = async (req, res) => {
 };
 
 const profile = async (req, res) => {
-     
   try {
-    const userId = req.params.userId
-    const userData = await User.findOne({_id:userId});
+    const userId = req.params.userId;
+    const userData = await User.findOne({ _id: userId });
     if (userData) {
       res.json(userData);
     } else {
@@ -160,13 +174,297 @@ const profile = async (req, res) => {
   }
 };
 
-const vehicleList = async(req,res)=>{
+const vehicleList = async (req, res) => {
   try {
     const vehicleData = await Vehicle.find();
     if (vehicleData) {
       res.json(vehicleData);
     } else {
       res.status(404).json({ message: "No vehicle data found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const profileEdit = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const name = req.body.name;
+    const email = req.body.email;
+    const mobile = req.body.mobile;
+
+    const updatedUserData = await User.findByIdAndUpdate(
+      userId,
+      {
+        name: name,
+        email: email,
+        mobile: mobile,
+      },
+      { new: true }
+    );
+    if (updatedUserData) {
+      res.status(200).json({ message: "User updated successfully" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const sendForgotOtp = async (email, otp) => {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: "plantorium1@gmail.com",
+        pass: "lhfkxofxdfyhflkq",
+      },
+    });
+    const mailOptions = {
+      from: "plantorium1@gamil.com",
+      to: email,
+      subject: "your otp verification code",
+      html: "<p> Your Rest Password " + otp + " </p>",
+    };
+    transporter.sendMail(mailOptions, function (error, info) {
+      if (error) {
+        console.log(error);
+      } else {
+        console.log("Email has been sent :-", info.response);
+      }
+    });
+  } catch (error) {
+    console.log(error.message);
+  }
+};
+
+const forgetPassword = async (req, res) => {
+  const email = req.body.resetEmail;
+  myCache.set("myEmail", email, 900000);
+  const otp = generateOtp();
+
+  try {
+    const ExistingEmail = await User.findOne({ email: email });
+
+    if (ExistingEmail) {
+      sendForgotOtp(email, otp);
+      res.json({ message: "success" });
+    } else {
+      res.status(200).json({ message: "Your email is already registered" });
+    }
+  } catch (error) {
+    res.status(500).json({ error: "Internal Server Error" });
+  }
+};
+
+const verifyforgotOtp = async (req, res) => {
+  const value = myCache.get("myOtp");
+  const otpValue = req.body.otpValue;
+
+  try {
+    if (otpValue === value) {
+      res.json("success");
+    } else {
+      res.json({ message: "Invalid OTP" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const resetPassword = async (req, res) => {
+  const newPassword = req.body.password;
+  const email = myCache.get("myEmail");
+
+  try {
+    const userData = await User.findOne({ email: email });
+    if (userData) {
+      const updatedData = await User.findOneAndUpdate(
+        { email: email },
+        { $set: { password: newPassword } },
+        { new: true }
+      );
+
+      if (updatedData) {
+        res.json({ success: true, message: "Password updated successfully" });
+      } else {
+        res
+          .status(500)
+          .json({ success: false, message: "Password update failed" });
+      }
+    } else {
+      res.status(404).json({ success: false, message: "User not found" });
+    }
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+const vehicleDetail = async (req, res) => {
+  try {
+    const vehicleId = req.params.vehicleId;
+    const vehicleData = await Vehicle.findOne({ _id: vehicleId });
+    if (vehicleData) {
+      res.json(vehicleData);
+    } else {
+      res.json({ message: "No vehicle data is found" });
+    }
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+const couponData = async (req, res) => {
+  try {
+    const couponData = await Coupon.find();
+    if (couponData) {
+      res.json(couponData);
+    } else {
+      res.status(404).json({ message: "No coupon data found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const handleBooking = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const userData = await User.findOne({ _id: userId });
+    const city = req.body.city;
+    const pickupPoint = req.body.pickupPoint;
+    const dropPoint = req.body.dropPoint;
+    const partnerData = await Partner.find();
+    const length = partnerData.length;
+    const pick = Math.floor(Math.random() * length);
+    const partner = partnerData[pick];
+    if (partner) {
+      io.to(partner.email).emit("new_request", {
+        userData,
+        city,
+        pickupPoint,
+        dropPoint,
+      });
+      res.json(partner);
+    } else {
+      res.status(404).json({ message: "No partner is found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const bookingCompletion = async (req, res) => {
+  try {
+    const {
+      userData,
+      partnerData,
+      pickupPoint,
+      dropPoint,
+      totalPrice,
+      name,
+      number,
+    } = req.body;
+    const Order = new Booking({
+      userId: userData._id,
+      partnerId: partnerData._id,
+      pickUpPoint: pickupPoint,
+      dropPoint: dropPoint,
+      totalPrice: totalPrice,
+      booker_name: name,
+      booker_Mobile: number,
+    });
+    const newOrder = await Order.save();
+    console.log(newOrder,"this is the new order");
+
+    const partnerUpdate = await Partner.findOneAndUpdate(
+      { _id: partnerData._id },
+      { $set: { currentBookingId: newOrder._id } }, // Using $set to update currentBookingId
+      { new: true }
+    );
+    console.log("1111111111111111111111111111111111");
+    // const userObjectId = userData._id);
+
+    // const partnerObjectId = mongoose.Types.ObjectId(partnerData._id);
+    console.log("2222222222222222222222222222222222222222");
+
+    const updateBooingHistory = await new BookingHistory({   
+      debit: userData._id,
+      credit:partnerData._id,
+      amount:totalPrice,
+      status:"booked"
+    })
+    console.log(updateBooingHistory,"this is booking history");
+
+    const newHistory = await updateBooingHistory.save()
+     
+
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const detailsBooking = async (req, res) => {
+  try {
+    const userId = req.params.userId;
+    const bookingData = await Booking.findOne({ userId: userId });
+    if (bookingData) {
+      res.json(bookingData);
+    } else {
+      res.status(404).json({ message: "ther is no booking data found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+const cancelBooking = async (req, res) => {
+  console.log("inside the cancel booking");
+  try {
+    const bookingId = req.params.bookingId;
+    
+    const updatedBookingData = await Booking.findOneAndUpdate(
+      { _id: bookingId },
+      { is_canceled: true },
+      { new: true }
+    );
+
+    const updateBooingHistory = await new BookingHistory({   
+      debit: partnerData._id,
+      credit:userData._id,
+      amount:totalPrice,
+      status:"canceled"
+    })
+    console.log(updateBooingHistory,"this is booking history");
+
+    const newHistory = await updateBooingHistory.save()
+
+
+    if (updatedBookingData) {
+      res.json(updatedBookingData);
+    } else {
+      res
+        .status(404)
+        .json({ message: "ther is no updated booking data found" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+const bookingData = async (req,res)=>{
+  try {
+    const bookingId = req.params.id
+    const bookingData = await Booking.findOne({_id:bookingId})
+
+    if (bookingData) {
+      console.log(bookingData, "this is the details");
+      res.json(bookingData); 
+    } else {
+      console.log("no data");
+      res.status(404).json({ message: "No booking data found" });
     }
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error" });
@@ -179,5 +477,16 @@ export default {
   userLogin,
   listCity,
   profile,
-  vehicleList
+  profileEdit,
+  vehicleList,
+  forgetPassword,
+  verifyforgotOtp,
+  resetPassword,
+  vehicleDetail,
+  couponData,
+  handleBooking,
+  bookingCompletion,
+  detailsBooking,
+  cancelBooking,
+  bookingData
 };

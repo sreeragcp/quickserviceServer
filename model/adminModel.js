@@ -7,10 +7,13 @@ const adminSchema = mongoose.Schema({
         required: true,
         unique: true,
       },
-      password: {
+    password: {
         type: String,
         required: true,
       },
+    wallet:{
+      type:Number
+    }  
 })
 
 const Admin = mongoose.model("Admin",adminSchema)

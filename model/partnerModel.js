@@ -5,6 +5,10 @@ const partnerSchema = mongoose.Schema({
     type: String,
     required: true,
   },
+  currentBookingId:{
+    type:String
+  },
+
   email: {
     type: String,
     required: true,
@@ -49,7 +53,19 @@ const partnerSchema = mongoose.Schema({
   vehicle:{
     type:String,
     required:true
+  },
+  is_verified:{
+    type:Boolean,
+    default:false
+  },
+  is_active:{
+    type:Boolean,
+    default:false
+  },
+  wallet:{
+    type:Number
   }
+
 });
 
 const Partner = mongoose.model("Partner",partnerSchema)

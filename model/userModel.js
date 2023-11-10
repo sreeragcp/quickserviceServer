@@ -21,7 +21,12 @@ const userSchema = mongoose.Schema({
   isBlocked: {
     type: Boolean,
     default: false
-},
+  },
+  wallet:{
+    type:Number,
+    default:0
+  }
+
 });
 
 const User = mongoose.model("User", userSchema);

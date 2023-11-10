@@ -16,6 +16,11 @@ const vehicleSchema = mongoose.Schema({
     maxWeight:{
         type:Number,
         required:true
+    },
+
+    pricePerKm:{
+        type:Number,
+        required:true
     }
 
 })
