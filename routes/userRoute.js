@@ -1,7 +1,7 @@
 import express from 'express'
 const userRoute = express()
 import userController from '../controller/userController.js'
-import { protect } from '../middleware/authMiddleware.js'
+import { protect } from "../middleware/authMiddleware.js";
 
 
 
@@ -9,19 +9,21 @@ import { protect } from '../middleware/authMiddleware.js'
 userRoute.post('/register',userController.userRegister)
 userRoute.post('/otp',userController.verifyOtp)
 userRoute.post('/login',userController.userLogin)
-userRoute.get('/cityList',userController.listCity)
-userRoute.get('/profile/:userId',userController.profile)
-userRoute.patch('/profileEdit/:userId',userController.profileEdit)
-userRoute.get('/vehicleList',userController.vehicleList)
+userRoute.get('/cityList',protect,userController.listCity)
+userRoute.get('/profile/:userId',protect,userController.profile)
+userRoute.patch('/profileEdit/:userId',protect,userController.profileEdit)
+userRoute.get('/vehicleList',protect,userController.vehicleList)
 userRoute.post('/forgetPasword',userController.forgetPassword)
 userRoute.post('/verifyOtp',userController.verifyforgotOtp)
 userRoute.patch('/restPassword',userController.resetPassword)
-userRoute.get('/vehicleDetail/:vehicleId',userController.vehicleDetail)
-userRoute.get('/coupon',userController.couponData)
-userRoute.post('/handleBooking/:userId',userController.handleBooking)
-userRoute.post('/bookingCompletion',userController.bookingCompletion)
-userRoute.get('/detailBooking/:userId',userController.detailsBooking)
-userRoute.patch('/cancelBooking/:bookingId',userController.cancelBooking)
-userRoute.get('/bookingDetails/:id',userController.bookingData)
+userRoute.get('/vehicleDetail/:vehicleId',protect,userController.vehicleDetail)
+userRoute.get('/coupon',protect,userController.couponData)
+userRoute.post('/handleBooking/:userId',protect,userController.handleBooking)
+userRoute.post('/bookingCompletion',protect,userController.bookingCompletion)
+userRoute.get('/detailBooking/:userId',protect,userController.detailsBooking)
+userRoute.patch('/cancelBooking/:bookingId',protect,userController.cancelBooking)
+userRoute.get('/bookingDetails/:id',protect,userController.bookingData)
+userRoute.post('/applyCoupon',protect,userController.applyCoupon)
+
 
 export default userRoute

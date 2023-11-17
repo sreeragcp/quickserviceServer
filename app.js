@@ -91,6 +91,8 @@ io.on("connection", (socket) => {
       // Retrieve messages from MongoDB
       const messages = await messageModel.findOne({ bookingId: bookingId });
 
+      console.log(messages,"this is the server message");
+
       // Emit the messages to the client
       socket.emit("messageList", messages);
     } catch (err) {
@@ -100,6 +102,8 @@ io.on("connection", (socket) => {
   socket.on("addMessage", async (data) => {
     try {
       const { bookingId, userId,partnerId, message, currentUserId } = data;
+
+      console.log(bookingId,"this si the booking id");
       const messageExist = await messageModel.findOne({ bookingId: bookingId });
 
       const user = await User.findOne({_id:currentUserId});
@@ -112,7 +116,7 @@ io.on("connection", (socket) => {
         var userName = partner.name;
       }
 
-      if (messageExist) {
+      // if (messageExist) {
         const newMessage = {
           text: message,
           sender: currentUserId, 
@@ -125,37 +129,38 @@ io.on("connection", (socket) => {
             $push: {
               messages: newMessage,
             },
-          }
+          },{upsert:true,new:true}
         );
         // console.log(updateResult, "---------updateResult----------");
-      } else {
-        const newMessage = new messageModel({
-          bookingId:new ObjectId(bookingId), // Replace with the actual Booking ID
-          userId:new ObjectId(userId), // Replace with the actual User ID
-          partnerId:new ObjectId(partnerId), // Replace with the actual Vendor ID
-          // room:roomName,
-          messages: [
-            {
-              text: message,
-              sender: currentUserId, // Replace with the sender's ID
-              userName: userName,
-            },
-            // Add more messages as needed
-          ],
-        });
-        console.log(newMessage,"--new Message");
+      // }
+      //  else {
+      //   const newMessage = new messageModel({
+      //     bookingId:new ObjectId(bookingId), // Replace with the actual Booking ID
+      //     userId:new ObjectId(userId), // Replace with the actual User ID
+      //     partnerId:new ObjectId(partnerId), // Replace with the actual Vendor ID
+      //     // room:roomName,
+      //     messages: [
+      //       {
+      //         text: message,
+      //         sender: currentUserId, // Replace with the sender's ID
+      //         userName: userName,
+      //       },
+      //       // Add more messages as needed
+      //     ],
+      //   });
+      //   console.log(newMessage,"--new Message");
 
-        newMessage
-          .save()
-          .then((savedMessage) => {
-            console.log("Message saved:", savedMessage);
-            // Handle the success case
-          })
-          .catch((error) => {
-            console.error("Error saving message:", error);
-            // Handle the error case
-          });
-      }
+      //   newMessage
+      //     .save()
+      //     .then((savedMessage) => {
+      //       console.log("Message saved:", savedMessage);
+      //       // Handle the success case
+      //     })
+      //     .catch((error) => {
+      //       console.error("Error saving message:", error);
+      //       // Handle the error case
+      //     });
+      // }
       // Emit the "messageAdded" event to all connected sockets
       io.emit("messageAdded");
     } catch (err) {

@@ -1,6 +1,6 @@
 import  jwt  from "jsonwebtoken";
-import { generateUserToken } from "../utils/generateUserToken.js";
-import User from "../model/userModel.js";
+import {generatePartnerToken} from "../utils/generateUserToken.js";
+
 
 
 const protect = async(req,res,next)=>{

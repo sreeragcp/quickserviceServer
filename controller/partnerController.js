@@ -6,8 +6,9 @@ import nodemailer from "nodemailer";
 import NodeCache from "node-cache";
 import cloudinary from "cloudinary";
 import Booking from "../model/bookingModel.js";
-import Admin from "../model/adminModel.js"
+import Admin from "../model/adminModel.js";
 import BookingHistory from "../model/bookingHistoryModel.js";
+import { generatePartnerToken } from "../utils/generateUserToken.js";
 let io;
 
 export const hy = async (i) => {
@@ -21,7 +22,7 @@ function generateOtp() {
   for (let i = 0; i < 4; i++) {
     otp += Math.floor(Math.random() * 10);
   }
-  myCache.set("myOtp", otp,90000);
+  myCache.set("myOtp", otp, 90000);
   return otp;
 }
 
@@ -68,7 +69,7 @@ const partnerRegister = async (req, res) => {
   try {
     const email = req.body.email;
     const otp = generateOtp();
-
+    console.log(otp, "this is the partner otp");
     const partnerExist = await Partner.findOne({ email: req.body.email });
 
     if (!partnerExist) {
@@ -139,7 +140,7 @@ const partnerLogin = async (req, res) => {
     const email = req.body.email;
     const partnerData = await Partner.findOne({ email: email });
     const passwordMatch = await bcrypt.compare(password, partnerData.password);
-
+    generatePartnerToken(partnerData)
     if (passwordMatch) {
       res.status(201).json({ message: "success", partnerData });
     } else {
@@ -240,35 +241,31 @@ const bookingDetails = async (req, res) => {
   }
 };
 
-
-
 const updateBooking = async (req, res) => {
   console.log("inside the update booking");
   try {
     const partnerId = req.params.partnerId;
-    const status = req.body.status
-    const partnerData = await Partner.findOne({_id:partnerId})
-    const bookingId = partnerData.currentBookingId
+    const status = req.body.status;
+    const partnerData = await Partner.findOne({ _id: partnerId });
+    const bookingId = partnerData.currentBookingId;
     const updatedBookingData = await Booking.findOneAndUpdate(
       { _id: bookingId },
-      { $set: { status: status } }, 
+      { $set: { status: status } },
       { new: true }
     );
-    
+
     if (updatedBookingData) {
       res.status(200).json({
         message: "Booking updated successfully",
         data: updatedBookingData.status,
       });
     }
-
-
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error" });
   }
 };
 
-const sendOrderOtpMail = async (email,otp) => {
+const sendOrderOtpMail = async (email, otp) => {
   try {
     const transporter = nodemailer.createTransport({
       service: "gmail",
@@ -298,100 +295,176 @@ const sendOrderOtpMail = async (email,otp) => {
   }
 };
 
-const generateOrderOtp = async(req,res)=>{
+const generateOrderOtp = async (req, res) => {
+  console.log("inside the otp");
   try {
-    const partnerId = req.params.partnerId
-    const partnerData = await Partner.findOne({_id:partnerId})
-    const BookingId = partnerData.currentBookingId
-    const bookingData = await Booking.findOne({_id:BookingId})
-    const userId = bookingData.userId
-    const userData = await User.findOne({_id:userId})
-    const userEmail =userData.email
-    const otpValue = generateOtp()
-    console.log(otpValue,"this is the otpValue");
-    const userExist = await User.findOne({email:userEmail})
+    const partnerId = req.params.partnerId;
+    const partnerData = await Partner.findOne({ _id: partnerId });
+    const BookingId = partnerData.currentBookingId;
+    const bookingData = await Booking.findOne({ _id: BookingId });
+    const userId = bookingData.userId;
+    const userData = await User.findOne({ _id: userId });
+    const userEmail = userData.email;
+    const otpValue = generateOtp();
+    console.log(otpValue, "this is the otpValue");
+    const userExist = await User.findOne({ email: userEmail });
     if (userExist) {
-      sendOrderOtpMail(userEmail,otpValue);
+      sendOrderOtpMail(userEmail, otpValue);
       res.json({ message: "success" });
     } else {
       res.status(200).json({ message: "User is not exist" });
     }
-    
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error" });
   }
-}
+};
 
-const verifyPartnerOtp = async(req,res)=>{
+const verifyPartnerOtp = async (req, res) => {
   try {
-    const partnerId = req.params.partnerId
+    const partnerId = req.params.partnerId;
     const value = myCache.get("myOtp");
     const otp = req.body.otpValue;
-    const status ="Delivered"
+    const status = "Delivered";
 
-    const bookingData = await Partner.findOne({_id:partnerId})
-    const bookingId = bookingData.currentBookingId
+    const bookingData = await Partner.findOne({ _id: partnerId });
+    const bookingId = bookingData.currentBookingId;
 
-    if(otp===value){
-      const bookingdata = await findOne({_id:bookingId})
-      const totalPrice = bookingData.totalPrice
-      const adminEmail = "sreeragkunnothuparamba@gamil.com"
-      const adminWallet = totalPrice*10/100
-      const partnerWallet = totalPrice*90/100
+    if (otp === value) {
+      const bookingdata = await findOne({ _id: bookingId });
+      const totalPrice = bookingData.totalPrice;
+      const adminEmail = "sreeragkunnothuparamba@gamil.com";
+      const adminAmount = (totalPrice * 10) / 100;
+      const partnerAmount = (totalPrice * 90) / 100;
       const updatedBookingData = await Booking.findOneAndUpdate(
         { _id: bookingId },
-        { $set: { status: status }},
+        { $set: { status: status } },
         { new: true }
       );
-      if(updatedBookingData){
-
+      if (updatedBookingData) {
         const updataAdmin = await Admin.findOneAndUpdate(
-          { email:adminEmail},
-          { $set: { wallet: adminWallet }},
+          { email: adminEmail },
+          { $set: { wallet: adminAmount } },
           { new: true }
         );
 
-        const updatePartner = await Partner.findOneAndUpdate(
-          { _id:partnerId},
-          { $set: { wallet:partnerWallet }},
-          { new: true }
-        )
-        const updateBookHistory = await BookingHistory.findOneAndUpdate({$and:[{credit:partnerId},{status:"booked"}]}, 
-          { $set: { status:closed }},
-          { new: true }
+        const partnerId = updatedBookingData.partnerId;
+        const partnerWallet = await Partner.findOne({ _id: partnerId });
+        partnerWallet.wallet += partnerAmount;
 
-        )
-        res.json({message:"success"})
+        await partnerWallet.save();
+
+        await Partner.findOneAndUpdate(
+          { _id: partnerId },
+          { $set: { currentBookingId: null } }
+        );
+
+        console.log(partnerWallet, "thsi is the partnerWallet");
+
+        // const updatwalletHistory = new BookingHistory({
+        //   partnerId: partnerId,
+        //   amount: partnerAmount,
+        //   type: "credit",
+        //   reason: "completed",
+        // });
+        // await updatwalletHistory.save();
+
+        res.json({ message: "success" });
       }
-     
-    }
-    else{
+    } else {
       res.json({ message: "Invalid OTP" });
     }
-    
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error" });
   }
-}
+};
 
-const currentBookingData = async(req,res)=>{
-  const partnerId = req.params.partnerId
+const currentBookingData = async (req, res) => {
+  const partnerId = req.params.partnerId;
   try {
-
-    const partnerData = await Partner.findOne({_id:partnerId})
-    const bookingId = partnerData.currentBookingId
-    const bookingData = await Booking.findOne({_id:bookingId})
-    if(bookingData){
-      res.json(bookingData)
-    }
-    else{
+    const partnerData = await Partner.findOne({ _id: partnerId });
+    const bookingId = partnerData.currentBookingId;
+    const bookingData = await Booking.findOne({ _id: bookingId });
+    if (bookingData) {
+      res.json(bookingData);
+    } else {
       res.status(200).json({ message: "ther is no current booking data" });
     }
-    
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error" });
   }
-}
+};
+
+const getGraph = async (req, res) => {
+  const currentdate = new Date();
+  try {
+    const data = await BookingHistory.aggregate([
+      {
+        $group: {
+          _id: {
+            day: { $dayOfMonth: "$createdAt" },
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" }
+          },
+          totalAmount: { $sum: "$amount" }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: {
+            $dateToString: {
+              format: "%d/%m/%Y",
+              date: {
+                $dateFromParts: {
+                  year: "$_id.year",
+                  month: "$_id.month",
+                  day: "$_id.day"
+                }
+              }
+            }
+          },
+          totalAmount: 1
+        }
+      }
+    ]);
+
+    const bookings = await BookingHistory.aggregate([
+      {
+        $group: {
+          _id: {
+            day: { $dayOfMonth: "$createdAt" },
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" }
+          },
+          totalcount: { $sum: 1 }
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          date: {
+            $dateToString: {
+              format: "%d/%m/%Y",
+              date: {
+                $dateFromParts: {
+                  year: "$_id.year",
+                  month: "$_id.month",
+                  day: "$_id.day"
+                }
+              }
+            }
+          },
+          totalcount: 1
+        }
+      }
+    ]);
+    if(data){
+      res.json({data,bookings})
+    }
+
+    // console.log(data,"this si the data");
+  } catch (error) {}
+};
 
 export default {
   partnerRegister,
@@ -406,5 +479,6 @@ export default {
   updateBooking,
   generateOrderOtp,
   verifyPartnerOtp,
-  currentBookingData
+  currentBookingData,
+  getGraph,
 };

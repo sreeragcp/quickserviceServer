@@ -5,11 +5,13 @@ import Coupon from "../model/couponModal.js";
 import bcrypt from "bcryptjs";
 import nodemailer from "nodemailer";
 import NodeCache from "node-cache";
-import generateTocken from "../utils/generateUserToken.js";
+import { generateUserToken } from "../utils/generateUserToken.js";
 import Partner from "../model/partnerModel.js";
 import Booking from "../model/bookingModel.js";
 import BookingHistory from "../model/bookingHistoryModel.js";
 import mongoose from "mongoose";
+
+
 
 let io;
 
@@ -70,11 +72,9 @@ const sendOtpMail = async (email, otp) => {
 const userRegister = async (req, res) => {
   try {
     const email = req.body.email;
-    console.log(req.body, "this is the reqbody");
     const otp = generateOtp();
-    console.log(otp, "this is the otp");
+    console.log(otp, "this is the register otp");
     const userExist = await User.findOne({ email: req.body.email });
-    console.log(userExist, "this is the userExist");
 
     if (!userExist) {
       sendOtpMail(email, otp);
@@ -88,7 +88,6 @@ const userRegister = async (req, res) => {
 };
 
 const verifyOtp = async (req, res) => {
-  console.log("inside verify otp");
   try {
     const value = myCache.get("myOtp");
     console.log(value, "thisi is myotp");
@@ -133,7 +132,7 @@ const userLogin = async (req, res) => {
     if (user) {
       const passwordMatch = await bcrypt.compare(password, user.password);
       if (passwordMatch) {
-        const tocken = generateTocken(res, user._id);
+        const tocken = generateUserToken(user);
         res.status(201).json({ tocken: tocken, userData: user });
       } else {
         res.status(401).json({ message: "Invalid Email or Password" });
@@ -335,10 +334,13 @@ const handleBooking = async (req, res) => {
     const city = req.body.city;
     const pickupPoint = req.body.pickupPoint;
     const dropPoint = req.body.dropPoint;
-    const partnerData = await Partner.find();
+    const partnerData = await Partner.find({
+      is_verified: true,
+    });
     const length = partnerData.length;
     const pick = Math.floor(Math.random() * length);
     const partner = partnerData[pick];
+    console.log(partner,"thisi site");
     if (partner) {
       io.to(partner.email).emit("new_request", {
         userData,
@@ -355,7 +357,18 @@ const handleBooking = async (req, res) => {
   }
 };
 
+
+function generateBookingId() {
+  let bookingId = "";
+  for (let i = 0; i <8 ; i++) {
+    bookingId += Math.floor(Math.random() * 10);
+  }
+  // myCache.set("myOtp", otp, 60000);
+  return bookingId;
+}
+
 const bookingCompletion = async (req, res) => {
+
   try {
     const {
       userData,
@@ -366,8 +379,12 @@ const bookingCompletion = async (req, res) => {
       name,
       number,
     } = req.body;
+
+ const bookId = generateBookingId()
+
     const Order = new Booking({
       userId: userData._id,
+      booking_id:bookId,
       partnerId: partnerData._id,
       pickUpPoint: pickupPoint,
       dropPoint: dropPoint,
@@ -376,34 +393,30 @@ const bookingCompletion = async (req, res) => {
       booker_Mobile: number,
     });
     const newOrder = await Order.save();
-    console.log(newOrder,"this is the new order");
 
     const partnerUpdate = await Partner.findOneAndUpdate(
       { _id: partnerData._id },
-      { $set: { currentBookingId: newOrder._id } }, // Using $set to update currentBookingId
+      { $set: { currentBookingId: newOrder._id } }, 
       { new: true }
     );
-    console.log("1111111111111111111111111111111111");
-    // const userObjectId = userData._id);
-
-    // const partnerObjectId = mongoose.Types.ObjectId(partnerData._id);
-    console.log("2222222222222222222222222222222222222222");
-
-    const updateBooingHistory = await new BookingHistory({   
-      debit: userData._id,
-      credit:partnerData._id,
+    
+    const bookingUpdate = new BookingHistory({
+      debited:userData._id,
+      credited:partnerData._id,
       amount:totalPrice,
       status:"booked"
     })
-    console.log(updateBooingHistory,"this is booking history");
+    const result = await bookingUpdate.save()
 
-    const newHistory = await updateBooingHistory.save()
-     
+    if(newOrder){
+      res.json({message:"success"})
+    }
 
   } catch (error) {
-    res.status(500).json({ message: "Internal Server Error" });
+    res.status(500).json({ message: "Internal Server Error " });
   }
 };
+
 
 const detailsBooking = async (req, res) => {
   try {
@@ -421,27 +434,32 @@ const detailsBooking = async (req, res) => {
 
 
 const cancelBooking = async (req, res) => {
-  console.log("inside the cancel booking");
   try {
     const bookingId = req.params.bookingId;
     
     const updatedBookingData = await Booking.findOneAndUpdate(
       { _id: bookingId },
-      { is_canceled: true },
+      { is_canceled: true,status: "Canceled"  },
       { new: true }
     );
 
-    const updateBooingHistory = await new BookingHistory({   
-      debit: partnerData._id,
-      credit:userData._id,
+    const bookingUpdate = new BookingHistory({
+      debited:partnerData._id,
+      credited:userData._id,
       amount:totalPrice,
       status:"canceled"
     })
-    console.log(updateBooingHistory,"this is booking history");
 
-    const newHistory = await updateBooingHistory.save()
+    const result = await bookingUpdate.save()
 
+    const userId =updatedBookingData.userId
+    const userWallet = await User.findOne({_id:userId})
+    userWallet.wallet+=updatedBookingData.totalPrice
+    
+    await userWallet.save()
+    console.log(userWallet,"thsi is the userwallwt");
 
+  
     if (updatedBookingData) {
       res.json(updatedBookingData);
     } else {
@@ -463,12 +481,29 @@ const bookingData = async (req,res)=>{
       console.log(bookingData, "this is the details");
       res.json(bookingData); 
     } else {
-      console.log("no data");
       res.status(404).json({ message: "No booking data found" });
     }
   } catch (error) {
     res.status(500).json({ message: "Internal Server Error" });
   }
+}
+
+const applyCoupon = async(req,res)=>{
+      try {
+        const code = req.body.code
+        const price = req.body.price
+        
+        const totalPrice = Math.floor(price - (price * details.discount) / 100);
+        if(totalPrice){
+          res.json(totalPrice)
+        }
+        else{
+          res.status(404).json({ message: "No data found" });
+        }
+
+      } catch (error) {
+        res.status(500).json({ message: "Internal Server Error" });
+      }
 }
 
 export default {
@@ -488,5 +523,6 @@ export default {
   bookingCompletion,
   detailsBooking,
   cancelBooking,
-  bookingData
+  bookingData,
+  applyCoupon
 };

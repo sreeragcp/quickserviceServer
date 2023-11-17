@@ -6,7 +6,8 @@ const partnerSchema = mongoose.Schema({
     required: true,
   },
   currentBookingId:{
-    type:String
+    type:String,
+    default:null
   },
 
   email: {
@@ -64,7 +65,11 @@ const partnerSchema = mongoose.Schema({
   },
   wallet:{
     type:Number
-  }
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 
 });
 

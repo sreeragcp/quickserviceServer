@@ -7,18 +7,18 @@ import Coupon from "../model/couponModal.js";
 import Booking from "../model/bookingModel.js";
 import cloudinary from "cloudinary";
 import { ObjectId } from "mongoose";
+import { generateAdminToken } from "../utils/generateUserToken.js";
 
 
 const adminLogin = async (req, res) => {
   const { email, password } = req.body;
-
   const stringWithQuotes = email;
   const emailId = stringWithQuotes.replace(/"/g, "");
   try {
-    const adminExist = await Admin.find({ email: emailId });
-
+    const adminExist = await Admin.findOne({ email: emailId });
+    const tocken = generateAdminToken(adminExist);
     if (adminExist) {
-      res.status(201).json({ message: "success" });
+      res.status(201).json({ message: "success", admin:adminExist});
     } else {
       res.status(401).json({ message: "Invalid Email or Password" });
     }
@@ -160,9 +160,7 @@ const verifyPartner = async(req,res)=>{
 }
 
 const addCoupon = async(req,res)=>{
-  console.log('inside the addcoupon');
   try {
-    console.log(req.body,"this is the reqbody");
     const couponCode = req.body.couponCode
     const discount = req.body.discount
     const maxDiscount = req.body.maxDiscount
@@ -194,7 +192,6 @@ const addCoupon = async(req,res)=>{
 }
 
 const couponList = async(req,res)=>{
-  console.log("inside the couponList");
   try {
     const couponData = await Coupon.find();
     if (couponData) {
@@ -257,10 +254,8 @@ const bookingData = async(req,res)=>{
       const bookingData = await Booking.findOne({_id:bookingId})
     
     if (bookingData) {
-      console.log(bookingData, "this is the details");
       res.json(bookingData); 
     } else {
-      console.log("no data");
       res.status(404).json({ message: "No booking data found" });
     }
 
@@ -269,6 +264,226 @@ const bookingData = async(req,res)=>{
   }
 }
 
+const fetchPartner = async(req,res)=>{
+  try {
+    const partnerId = req.params.id
+    const parterData = await Partner.findOne({_id:partnerId})
+    if(parterData){
+      res.json(parterData)
+    }
+    else{
+      res.status(404).json({ message: "No partner data found" });
+    }
+  
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+
+const getGraphDetails = async(req,res)=>{
+  const currentdate = new Date();
+  try {
+
+    const data = await Booking.aggregate([
+      {
+        $group: {
+          _id: null,
+          totalBookings: { $sum: 1 },
+          totalAmount: { $sum: "$totalPrice" }
+        }
+      }
+    ]);
+
+    const result = {
+      totalBookings: data[0].totalBookings,
+      totalAmount: data[0].totalAmount
+    };
+
+
+    const datas = await Booking.aggregate([
+      {
+        $group: {
+          _id: {
+            month: { $month: "$bookingDate" },
+            year: { $year: "$bookingDate" }
+          },
+          totalBookings: { $sum: 1 },
+          totalAmount: { $sum: "$totalPrice" }
+        }
+      },
+      {
+        $match: {
+          "_id.month": new Date().getMonth() + 1, // Adding 1 because months are zero-based
+          "_id.year": new Date().getFullYear()
+        }
+      },
+      {
+        $project: {
+          _id: 0,
+          totalBookings: 1,
+          totalAmount: 1
+        }
+      }
+    ]);
+    
+
+    res.json({result,datas});
+
+    // const data = await Booking.aggregate([
+    //   {
+    //     $group: {
+    //       _id: {
+    //         day: { $dayOfMonth: "$createdAt" },
+    //         month: { $month: "$createdAt" },
+    //         year: { $year: "$createdAt" }
+    //       },
+    //       totalAmount: { $sum: "$amount" }
+    //     }
+    //   },
+    //   {
+    //     $project: {
+    //       _id: 0,
+    //       date: {
+    //         $dateToString: {
+    //           format: "%d/%m/%Y",
+    //           date: {
+    //             $dateFromParts: {
+    //               year: "$_id.year",
+    //               month: "$_id.month",
+    //               day: "$_id.day"
+    //             }
+    //           }
+    //         }
+    //       },
+    //       totalAmount: 1
+    //     }
+    //   }
+    // ]);
+    
+  } catch (error) {
+    
+  }
+}
+
+const getBookingDetails = async(req,res)=>{
+
+  const currentdate = new Date();
+  try {
+
+    const data = await Partner.aggregate([
+      {
+        $group: {
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" },
+          },
+          totalUsers: { $sum: 1 },
+        },
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          monthlyData: { $push: { month: "$_id.month", year: "$_id.year", totalUsers: "$totalUsers" } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          monthlyData: 1,
+        },
+      },
+    ]);
+
+    // console.log(data[0].monthlyData,"this is the month");
+
+    res.json(data.length > 0 ? data[0].monthlyData[1] : []);
+    // const data = await Booking.aggregate([
+    //   {
+    //     $group: {
+    //       _id: {
+    //         month: { $month: "$bookingDate" },
+    //         year: { $year: "$bookingDate" },
+    //       },
+    //       totalBookings: { $sum: 1 },
+    //     },
+    //   },
+    //   {
+    //     $sort: {
+    //       "_id.year": 1,
+    //       "_id.month": 1,
+    //     },
+    //   },
+    //   {
+    //     $group: {
+    //       _id: null,
+    //       monthlyData: { $push: { month: "$_id.month", year: "$_id.year", totalBookings: "$totalBookings" } },
+    //     },
+    //   },
+    //   {
+    //     $project: {
+    //       _id: 0,
+    //       monthlyData: 1,
+    //     },
+    //   },
+    // ]);
+
+    // res.json(data.length > 0 ? data[0].monthlyData : []);
+    
+  } catch (error) {
+
+       res.status(500).json({ message: "Internal Server Error" });
+  }
+}
+ 
+
+const getUserRegister = async(req,res)=>{
+  try {
+    const data = await User.aggregate([
+      {
+        $group: {
+          _id: {
+            month: { $month: "$createdAt" },
+            year: { $year: "$createdAt" },
+          },
+          totalUsers: { $sum: 1 },
+        },
+      },
+      {
+        $sort: {
+          "_id.year": 1,
+          "_id.month": 1,
+        },
+      },
+      {
+        $group: {
+          _id: null,
+          monthlyData: { $push: { month: "$_id.month", year: "$_id.year", totalUsers: "$totalUsers" } },
+        },
+      },
+      {
+        $project: {
+          _id: 0,
+          monthlyData: 1,
+        },
+      },
+    ]);
+
+    // console.log(data[0].monthlyData,"this is the month");
+
+    res.json(data.length > 0 ? data[0].monthlyData[1] : []);
+  } catch (error) {
+
+    console.error(error);
+    res.status(500).json({ error: "Internal Server Error" });
+    
+  }
+}
 export default {
   adminLogin,
   addCity,
@@ -281,5 +496,9 @@ export default {
   addCoupon,
   couponList,
   detailsBooking,
-  bookingData
+  bookingData,
+  fetchPartner,
+  getGraphDetails,
+  getBookingDetails,
+  getUserRegister
 };

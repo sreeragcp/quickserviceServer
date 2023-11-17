@@ -1,9 +1,8 @@
 import  jwt  from "jsonwebtoken";
-import { generateUserToken } from "../utils/generateUserToken.js";
-import User from "../model/userModel.js";
+import {generateAdminToken} from "../utils/generateUserToken.js";
 
 
-const protect = async(req,res,next)=>{
+const protectAdmin = async(req,res,next)=>{
    const authHeader = req.headers.authorization
    if(!authHeader){
     return res.status(400).json({message:"Authorization header is missing"})
@@ -28,4 +27,4 @@ const protect = async(req,res,next)=>{
    }
 }
 
-export {protect};
+export {protectAdmin}

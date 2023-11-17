@@ -5,6 +5,10 @@ const bookingSchema = mongoose.Schema({
         type:mongoose.Schema.Types.ObjectId,
         required:true
     },
+    booking_id:{
+        type:String,
+        required:true
+    },
     booker_name:{
         type:String,
         required:true

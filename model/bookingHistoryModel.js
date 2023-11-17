@@ -1,24 +1,28 @@
 import mongoose from "mongoose";
 
 const bookingHistorySchema = mongoose.Schema({
-    debit:{
-        type:String,
-        // required:true
-    },
-    credit:{
-        type:String,
-        // required:true
-    },
-    amount:{
-        type:Number
-    },
-    status:{
-        type:String,
-        default:"booking"
-    }
+  debited:{
+    type:String,
+    
+  },
+  credited:{
+    type:String
+  },
+  amount: {
+    type: Number,
+    required: true,
+  },
+  status: {
+    type: String,
+    required: true,
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now,
+  },
 
-})
+});
 
-const BookingHistory =mongoose.model("BookingHistoty",bookingHistorySchema)
+const BookingHistory = mongoose.model("BookingHistoty", bookingHistorySchema);
 
-export default BookingHistory
+export default BookingHistory;
