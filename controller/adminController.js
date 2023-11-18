@@ -12,13 +12,14 @@ import { generateAdminToken } from "../utils/generateUserToken.js";
 
 const adminLogin = async (req, res) => {
   const { email, password } = req.body;
+  console.log(email,"this is the email");
   const stringWithQuotes = email;
   const emailId = stringWithQuotes.replace(/"/g, "");
   try {
     const adminExist = await Admin.findOne({ email: emailId });
     const tocken = generateAdminToken(adminExist);
     if (adminExist) {
-      res.status(201).json({ message: "success", admin:adminExist});
+      res.status(201).json({ message: "success", admin:adminExist,tocken:tocken});
     } else {
       res.status(401).json({ message: "Invalid Email or Password" });
     }

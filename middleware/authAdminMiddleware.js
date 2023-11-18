@@ -15,7 +15,7 @@ const protectAdmin = async(req,res,next)=>{
 
    try {
     const tockens = jwt.verify(tocken,process.env.JWT_SECRET)
-    if(tockens.role==="user"){
+    if(tockens.role==="Admin"){
         req.user=tockens;
         return next()
     }

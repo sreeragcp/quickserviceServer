@@ -140,9 +140,10 @@ const partnerLogin = async (req, res) => {
     const email = req.body.email;
     const partnerData = await Partner.findOne({ email: email });
     const passwordMatch = await bcrypt.compare(password, partnerData.password);
-    generatePartnerToken(partnerData)
+    const tocken = generatePartnerToken(partnerData)
     if (passwordMatch) {
-      res.status(201).json({ message: "success", partnerData });
+      res.status(201).json({ message: "success", partnerData: partnerData, tocken: tocken });
+
     } else {
       res.status(401).json({ message: "Invalid Email or Password" });
     }
