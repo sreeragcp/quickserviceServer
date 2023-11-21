@@ -131,37 +131,6 @@ io.on("connection", (socket) => {
             },
           },{upsert:true,new:true}
         );
-        // console.log(updateResult, "---------updateResult----------");
-      // }
-      //  else {
-      //   const newMessage = new messageModel({
-      //     bookingId:new ObjectId(bookingId), // Replace with the actual Booking ID
-      //     userId:new ObjectId(userId), // Replace with the actual User ID
-      //     partnerId:new ObjectId(partnerId), // Replace with the actual Vendor ID
-      //     // room:roomName,
-      //     messages: [
-      //       {
-      //         text: message,
-      //         sender: currentUserId, // Replace with the sender's ID
-      //         userName: userName,
-      //       },
-      //       // Add more messages as needed
-      //     ],
-      //   });
-      //   console.log(newMessage,"--new Message");
-
-      //   newMessage
-      //     .save()
-      //     .then((savedMessage) => {
-      //       console.log("Message saved:", savedMessage);
-      //       // Handle the success case
-      //     })
-      //     .catch((error) => {
-      //       console.error("Error saving message:", error);
-      //       // Handle the error case
-      //     });
-      // }
-      // Emit the "messageAdded" event to all connected sockets
       io.emit("messageAdded");
     } catch (err) {
       console.error(err);
