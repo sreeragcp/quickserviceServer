@@ -35,7 +35,6 @@ app.use(express.urlencoded({extended:true,limit:"500mb"}))
 app.use(cors({origin:true,credentials:true}));
 app.use(cookieParser());
 
-
  const server = app.listen(port, () => {
   console.log(`server start at port no.${port}`);
 });
@@ -46,7 +45,7 @@ app.use(cookieParser());
 
 const io = new Server(server, {
   cors: {
-    origin: "http://localhost:5173",
+    origin: "https://d2ylkx53ta80bs.cloudfront.net",
     methods: ["GET", "POST"],
   },
 });
