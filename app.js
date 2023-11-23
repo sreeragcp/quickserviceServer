@@ -19,7 +19,6 @@ import { Types } from 'mongoose';
 
 const ObjectId = Types.ObjectId;
 
-// const { ObjectId } = require("mongodb");
 
 cloudinary.v2.config({
   cloud_name: "dvaxt1kn8",
@@ -31,9 +30,6 @@ dotenv.config();
 const app = express();
 const port = process.env.PORT;
 
-//middleware
-// app.use(bodyParser.json({ limit: "200mb" }));
-// app.use(bodyParser.urlencoded({ limit: "10mb", extended: true }));
 app.use(express.json({limit:"500mb"}))
 app.use(express.urlencoded({extended:true,limit:"500mb"}))
 app.use(cors({origin:true,credentials:true}));

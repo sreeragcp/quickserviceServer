@@ -210,7 +210,6 @@ const partnerData = async (req, res) => {
 const acceptBooking = async (req, res) => {
   try {
     const { id } = req.params;
-    console.log(id, "this is the usreid");
     const user = await User.findOne({ _id: id });
     io.to(user.email).emit("acceptBooking", { message: "success" });
   } catch (error) {

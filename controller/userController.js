@@ -492,8 +492,9 @@ const applyCoupon = async(req,res)=>{
       try {
         const code = req.body.code
         const price = req.body.price
-        
-        const totalPrice = Math.floor(price - (price * details.discount) / 100);
+        const coupon = await Coupon.findOne({couponCode:code})
+        console.log(coupon,"this is the coupon");
+        const totalPrice = Math.floor(price - (price * coupon.discount) / 100);
         if(totalPrice){
           res.json(totalPrice)
         }
