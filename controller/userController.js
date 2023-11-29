@@ -73,12 +73,10 @@ const userRegister = async (req, res) => {
   try {
     const email = req.body.email;
     const otp = generateOtp();
-    console.log(otp, "this is the register otp");
     const userExist = await User.findOne({ email: req.body.email });
-
     if (!userExist) {
       sendOtpMail(email, otp);
-      res.json({ message: "success" });
+      res.json({message:"success"});
     } else {
       res.status(200).json({ message: "Your email is already registered" });
     }
@@ -340,7 +338,6 @@ const handleBooking = async (req, res) => {
     const length = partnerData.length;
     const pick = Math.floor(Math.random() * length);
     const partner = partnerData[pick];
-    console.log(partner,"thisi site");
     if (partner) {
       io.to(partner.email).emit("new_request", {
         userData,
@@ -377,7 +374,8 @@ const bookingCompletion = async (req, res) => {
       dropPoint,
       totalPrice,
       name,
-      number,
+      weight,
+      email
     } = req.body;
 
  const bookId = generateBookingId()
@@ -390,7 +388,8 @@ const bookingCompletion = async (req, res) => {
       dropPoint: dropPoint,
       totalPrice: totalPrice,
       booker_name: name,
-      booker_Mobile: number,
+      booker_email: email,
+      weight:weight
     });
     const newOrder = await Order.save();
 
@@ -434,12 +433,14 @@ const detailsBooking = async (req, res) => {
 
 
 const cancelBooking = async (req, res) => {
+  console.log('inside the cancel booking');
   try {
     const bookingId = req.params.bookingId;
+
     
     const updatedBookingData = await Booking.findOneAndUpdate(
       { _id: bookingId },
-      { is_canceled: true,status: "Canceled"  },
+      { is_canceled: true,status: "Canceled"},
       { new: true }
     );
 

@@ -21,7 +21,7 @@ userRoute.get('/coupon',protect,userController.couponData)
 userRoute.post('/handleBooking/:userId',protect,userController.handleBooking)
 userRoute.post('/bookingCompletion',protect,userController.bookingCompletion)
 userRoute.get('/detailBooking/:userId',protect,userController.detailsBooking)
-userRoute.patch('/cancelBooking/:bookingId',protect,userController.cancelBooking)
+userRoute.put('/cancelBooking/:bookingId',userController.cancelBooking)
 userRoute.get('/bookingDetails/:id',protect,userController.bookingData)
 userRoute.post('/applyCoupon',protect,userController.applyCoupon)
 

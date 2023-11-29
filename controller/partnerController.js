@@ -296,20 +296,15 @@ const sendOrderOtpMail = async (email, otp) => {
 };
 
 const generateOrderOtp = async (req, res) => {
-  console.log("inside the otp");
   try {
     const partnerId = req.params.partnerId;
     const partnerData = await Partner.findOne({ _id: partnerId });
     const BookingId = partnerData.currentBookingId;
     const bookingData = await Booking.findOne({ _id: BookingId });
-    const userId = bookingData.userId;
-    const userData = await User.findOne({ _id: userId });
-    const userEmail = userData.email;
+    const email = bookingData.booker_email
     const otpValue = generateOtp();
-    console.log(otpValue, "this is the otpValue");
-    const userExist = await User.findOne({ email: userEmail });
-    if (userExist) {
-      sendOrderOtpMail(userEmail, otpValue);
+    if (email) {
+      sendOrderOtpMail(email,otpValue);
       res.json({ message: "success" });
     } else {
       res.status(200).json({ message: "User is not exist" });
@@ -358,15 +353,7 @@ const verifyPartnerOtp = async (req, res) => {
           { $set: { currentBookingId: null } }
         );
 
-        console.log(partnerWallet, "thsi is the partnerWallet");
-
-        // const updatwalletHistory = new BookingHistory({
-        //   partnerId: partnerId,
-        //   amount: partnerAmount,
-        //   type: "credit",
-        //   reason: "completed",
-        // });
-        // await updatwalletHistory.save();
+        console.log(partnerWallet, "thsi is the partnerWallet")
 
         res.json({ message: "success" });
       }
@@ -379,7 +366,9 @@ const verifyPartnerOtp = async (req, res) => {
 };
 
 const currentBookingData = async (req, res) => {
+  console.log("inside the current");
   const partnerId = req.params.partnerId;
+  console.log(partnerId,"this is the ");
   try {
     const partnerData = await Partner.findOne({ _id: partnerId });
     const bookingId = partnerData.currentBookingId;
@@ -462,9 +451,24 @@ const getGraph = async (req, res) => {
       res.json({data,bookings})
     }
 
-    // console.log(data,"this si the data");
   } catch (error) {}
 };
+ 
+const getUserData = async(req,res)=>{
+  try {
+    const userId = req.params.userId
+    console.log(userId,"this is the userId");
+    const data = await User.findOne({_id:userId})
+    if(data){
+      res.json(data)
+    }
+    else{
+      res.status(200).json({ message: "ther is no user data" });
+    }
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error" });
+  }
+}
 
 export default {
   partnerRegister,
@@ -481,4 +485,5 @@ export default {
   verifyPartnerOtp,
   currentBookingData,
   getGraph,
+  getUserData
 };

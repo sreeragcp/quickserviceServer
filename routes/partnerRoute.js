@@ -13,11 +13,13 @@ partnerRoute.patch('/profileEdit/:partnerId',protectPartner,partnerController.pa
 partnerRoute.post ('/accept/:id',partnerController.acceptBooking)
 partnerRoute.post ('/reject/:id',partnerController.rejectBooking)
 partnerRoute.get('/bookingDetails/:partnerId',protectPartner,partnerController.bookingDetails)
-partnerRoute.patch('/updateBooking/:partnerId',protectPartner,partnerController.updateBooking)
-partnerRoute.post('/orderOtp/:partnerId',protectPartner,partnerController.generateOrderOtp)
+partnerRoute.patch('/updateBooking/:partnerId',partnerController.updateBooking)
+partnerRoute.post('/orderOtp/:partnerId',partnerController.generateOrderOtp)
 partnerRoute.post('/verifyorderOtp/:partnerId',partnerController.verifyPartnerOtp)
 partnerRoute.get('/currentBooking/:partnerId',protectPartner,partnerController.currentBookingData)
 partnerRoute.get('/graph',protectPartner,partnerController.getGraph)
+partnerRoute.get('/getuserData/:userId',partnerController.getUserData)
+
 
 
 export default partnerRoute

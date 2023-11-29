@@ -13,7 +13,7 @@ const bookingSchema = mongoose.Schema({
         type:String,
         required:true
     },
-    booker_Mobile:{
+    booker_email:{
         type:String,
         required:true
     },
@@ -40,10 +40,14 @@ const bookingSchema = mongoose.Schema({
     is_canceled:{
         type:Boolean,
         default:false
-    },
+    },  
     bookingDate:{
         type:Date,
         default:Date.now()
+    },
+    weight:{
+        type:Number,
+        required:true
     }
 
 })
