@@ -26,7 +26,7 @@ function generateOtp() {
   for (let i = 0; i < 4; i++) {
     otp += Math.floor(Math.random() * 10);
   }
-  myCache.set("myOtp", otp, 60000);
+  myCache.set("myOtp", otp,90000);
   return otp;
 }
 
@@ -70,6 +70,7 @@ const sendOtpMail = async (email, otp) => {
 };
 
 const userRegister = async (req, res) => {
+  console.log("inside the register");
   try {
     const email = req.body.email;
     const otp = generateOtp();

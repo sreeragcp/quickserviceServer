@@ -44,7 +44,7 @@ const server = app.listen(port, () => {
 
 const io = new Server(server, {
   cors: {
-    origin: "https://d2ylkx53ta80bs.cloudfront.net",
+    origin: "http://localhost:5173",
     methods: ["GET", "POST"],
   },
 });
