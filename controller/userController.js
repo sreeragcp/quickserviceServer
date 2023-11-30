@@ -329,6 +329,7 @@ const couponData = async (req, res) => {
 const handleBooking = async (req, res) => {
   try {
     const userId = req.params.userId;
+    console.log(userId,"this is the userId");
     const userData = await User.findOne({ _id: userId });
     const city = req.body.city;
     const pickupPoint = req.body.pickupPoint;
@@ -340,6 +341,7 @@ const handleBooking = async (req, res) => {
     const pick = Math.floor(Math.random() * length);
     const partner = partnerData[pick];
     if (partner) {
+      console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>...");
       io.to(partner.email).emit("new_request", {
         userData,
         city,
