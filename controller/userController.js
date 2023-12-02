@@ -341,7 +341,6 @@ const handleBooking = async (req, res) => {
     const pick = Math.floor(Math.random() * length);
     const partner = partnerData[pick];
     if (partner) {
-      console.log(">>>>>>>>>>>>>>>>>>>>>>>>>>>>...");
       io.to(partner.email).emit("new_request", {
         userData,
         city,
