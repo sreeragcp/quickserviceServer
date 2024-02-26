@@ -106,7 +106,7 @@ const verifyOtp = async (req, res) => {
         password: newpassword,
         aadhar: Aadhar.url,
         liscense: Liscense.url,
-        insurance: Inurance.url,
+        insurance: Inurance,
         rcFile: Rc.url,
         vehicle: req.body.vehicle,
         state: req.body.state,
