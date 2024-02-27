@@ -16,6 +16,9 @@ import User from "./model/userModel.js";
 import Partner from "./model/partnerModel.js";
 import messageModel from "./model/messageModel.js";
 import { Types } from "mongoose";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname, join } from "path";
 
 const ObjectId = Types.ObjectId;
 
@@ -26,6 +29,10 @@ cloudinary.v2.config({
 });
 
 dotenv.config();
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+
 const app = express();
 const port = process.env.PORT;
 
@@ -42,9 +49,7 @@ const server = app.listen(port, () => {
 
 /// socket io///
 
-app.get("*",(req,res)=>{
-  res.read
-})
+
 
 const io = new Server(server, {
   cors: {
@@ -77,6 +82,13 @@ hy(io);
 app.use("/admin", adminRoute);
 app.use("/partner", partnerRoute);
 app.use("/", userRoute);
+app.use(express.static(path.join(__dirname, "dist")));
+
+app.get("*", (req, res) => {
+  console.log("ready");
+  res.sendFile(path.join(__dirname, "dist", "index.html"));
+});
+
 
 io.on("connection", (socket) => {
   socket.on("listMessages", async (data) => {
